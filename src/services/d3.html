@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    
+</head>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script>
+    // Set up the SVG canvas
+        var width = 800,
+            height = 600;
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Create the force simulation
+        var simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(function (d) { return d.id; }))
+            .force("charge", d3.forceManyBody())
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        // Load the data
+        d3.json("/data.json", function (error, graph1) {
+            // if (error) throw error;
+           var graph =  {
+                "nodes": [
+                    { "id": "1", "name": "Node 1", "group": "Group A" },
+                    { "id": "2", "name": "Node 2", "group": "Group B" },
+                    { "id": "3", "name": "Node 3", "group": "Group A" }
+                ],
+                    "links": [
+                        { "source": "1", "target": "2", "value": 1 },
+                        { "source": "1", "target": "3", "value": 2 },
+                        { "source": "2", "target": "3", "value": 3 }
+                    ]
+            }
+            // Create the link elements
+            var link = svg
+                .append("g")
+                .attr("class", "links")
+                .selectAll("line")
+                .data(graph.links)
+                .enter()
+                .append("line")
+                .attr("stroke-width", function (d) {
+                    return Math.sqrt(d.value);
+                });
+
+            // Create the node elements
+            var node = svg
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll("circle")
+                .data(graph.nodes)
+                .enter()
+                .append("circle")
+                .attr("r", 5)
+                .attr("fill", "lightblue")
+                .call(
+                    d3
+                        .drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended)
+                )
+                .on("click", function (d) {
+                    displayNodeDetails(d);
+                });
+
+            // Add the text labels for the nodes
+            var label = svg
+                .append("g")
+                .attr("class", "labels")
+                .selectAll("text")
+                .data(graph.nodes)
+                .enter()
+                .append("text")
+                .attr("dx", 12)
+                .attr("dy", ".35em")
+                .text(function (d) {
+                    return d.name;
+                });
+
+            // Start the simulation
+            simulation.nodes(graph.nodes).on("tick", ticked);
+
+            simulation.force("link").links(graph.links);
+
+            // Function to be called on each tick of the simulation
+            function ticked() {
+                link
+                    .attr("x1", function (d) {
+                        return d.source.x;
+                    })
+                    .attr("y1", function (d) {
+                        return d.source.y;
+                    })
+                    .attr("x2", function (d) {
+                        return d.target.x;
+                    })
+                    .attr("y2", function (d) {
+                        return d.target.y;
+                    });
+
+                node
+                    .attr("cx", function (d) {
+                        return d.x;
+                    })
+                    .attr("cy", function (d) {
+                        return d.y;
+                    });
+
+                label
+                    .attr("x", function (d) {
+                        return d.x;
+                    })
+                    .attr("y", function (d) {
+                        return d.y;
+                    });
+            }
+
+            // Event listeners for drag behavior
+            function dragstarted(d) {
+                if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(d) {
+                d.fx = d3.event.x;
+                d.fy = d3.event.y;
+            }
+
+            function dragended(d) {
+                if (!d3.event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            // Function to display details of a selected node
+            function displayNodeDetails(d) {
+                // Clear any existing details
+                d3.select("#node-details").html("");
+
+                // Add the details to the page
+                d3.select("#node-details")
+                    .append("p")
+                    .html("<strong>Name:</strong> " + d.name);
+                d3.select("#node-details")
+                    .append("p")
+                    .html("<strong>Id:</strong> " + d.id);
+                d3.select("#node-details")
+                    .append("p")
+                    .html("<strong>Group:</strong> " + d.group);
+            }
+        });
+
+</script>
+<body>
+    <div id="node-details"></div>
+</body>
+</html>
